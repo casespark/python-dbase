@@ -240,7 +240,7 @@ class LazyAttr(object):
     def __init__(yo, func=None, doc=None):
         yo.fget = func
         yo.__doc__ = doc or func.__doc__
-    
+
     def __call__(yo, func):
         yo.fget = func
 
@@ -3093,9 +3093,12 @@ def retrieve_date(bytes, fielddef, *ignore):
         if cls is NoneType:
             return None
         return cls()
-    year = int(text[0:4])
-    month = int(text[4:6])
-    day = int(text[6:8])
+    try:
+        year = int(text[0:4])
+        month = int(text[4:6])
+        day = int(text[6:8])
+    except ValueError:
+        return None
     return fielddef[CLASS](year, month, day)
 
 def update_date(moment, *ignore):
@@ -3320,7 +3323,10 @@ def retrieve_vfp_memo(bytes, fielddef, memo, decoder):
     data = memo.get_memo(block)
     if fielddef[FLAGS] & BINARY:
         return data
-    return fielddef[CLASS](decoder(data)[0])
+    try:
+        return fielddef[CLASS](decoder(data)[0])
+    except ValueError:
+        return ''
 
 def update_vfp_memo(string, fielddef, memo, decoder, encoder):
     """
@@ -4408,7 +4414,7 @@ class Table(_Navigation):
         Record count:  %d
         Field count:   %d
         Record length: %d """ % (self.filename, version
-            , self.codepage, status, 
+            , self.codepage, status,
             self.last_update, len(self), self.field_count, self.record_length)
         str += "\n        --Fields--\n"
         for i in range(len(self.field_names)):
@@ -5311,7 +5317,7 @@ class ClpTable(Db3Table):
             else:
                 raise BadDataError("corrupt field structure")
             return fieldblock[:cr].tostring()
-        
+
         @fields.setter
         def fields(self, block):
             fieldblock = self._data[32:]
@@ -5427,7 +5433,7 @@ class ClpTable(Db3Table):
         if len(fieldsdef) % 32 != 0:
             raise BadDataError("field definition block corrupt: %d bytes in size" % len(fieldsdef))
         if len(fieldsdef) // 32 != meta.header.field_count:
-            raise BadDataError("Header shows %d fields, but field definition block has %d fields" 
+            raise BadDataError("Header shows %d fields, but field definition block has %d fields"
                     (meta.header.field_count, len(fieldsdef) // 32))
         total_length = meta.header.record_length
         for i in range(meta.header.field_count):
@@ -5464,7 +5470,7 @@ class ClpTable(Db3Table):
                     empty,
                     )
         if offset != total_length:
-            raise BadDataError("Header shows record length of %d, but calculated record length is %d" 
+            raise BadDataError("Header shows record length of %d, but calculated record length is %d"
                     (total_length, offset))
         meta.user_fields = [f for f in meta.fields if not meta[f][FLAGS] & SYSTEM]
         meta.user_field_count = len(meta.user_fields)
@@ -5582,7 +5588,7 @@ class FpTable(Table):
         if len(fieldsdef) % 32 != 0:
             raise BadDataError("field definition block corrupt: %d bytes in size" % len(fieldsdef))
         if len(fieldsdef) // 32 != meta.header.field_count:
-            raise BadDataError("Header shows %d fields, but field definition block has %d fields" 
+            raise BadDataError("Header shows %d fields, but field definition block has %d fields"
                     (meta.header.field_count, len(fieldsdef) // 32))
         total_length = meta.header.record_length
         for i in range(meta.header.field_count):
@@ -6437,7 +6443,7 @@ class Relation(object):
         and yo.tgt_field == other.tgt_field):
             return True
         return False
-    
+
     def __getitem__(yo, record):
         """
         record should be from the source table
@@ -6447,10 +6453,10 @@ class Relation(object):
             return yo.index[key]
         except NotFoundError:
             return List(desc='%s not found' % key)
-        
+
     def __hash__(yo):
         return hash((yo.src_table, yo.src_field, yo.tgt_table, yo.tgt_field))
-    
+
     def __ne__(yo, other):
         if (yo.src_table != other.src_table
         or  yo.src_field != other.src_field
@@ -6458,49 +6464,49 @@ class Relation(object):
         or  yo.tgt_field != other.tgt_field):
             return True
         return False
-    
+
     def __repr__(yo):
         return "Relation((%r, %r), (%r, %r))" % (yo.src_table_name, yo.src_field, yo.tgt_table_name, yo.tgt_field)
-    
+
     def __str__(yo):
         return "%s:%s --> %s:%s" % (yo.src_table_name, yo.src_field_name, yo.tgt_table_name, yo.tgt_field_name)
-    
+
     @property
     def src_table(yo):
         "name of source table"
         return yo._src_table
-    
+
     @property
     def src_field(yo):
         "name of source field"
         return yo._src_field
-    
+
     @property
     def src_table_name(yo):
         return yo._src_table_name
-    
+
     @property
     def src_field_name(yo):
         return yo._src_field_name
-    
+
     @property
     def tgt_table(yo):
         "name of target table"
         return yo._tgt_table
-    
+
     @property
     def tgt_field(yo):
         "name of target field"
         return yo._tgt_field
-    
+
     @property
     def tgt_table_name(yo):
         return yo._tgt_table_name
-    
+
     @property
     def tgt_field_name(yo):
         return yo._tgt_field_name
-    
+
     @LazyAttr
     def index(yo):
         def index(record, field=yo._tgt_field):
@@ -6518,7 +6524,7 @@ class Relation(object):
         else:
             yo._tables[yo._tgt_table] = 'one'
         return yo.index
-    
+
     def one_or_many(yo, table):
         yo.index    # make sure yo._tables has been populated
         try:
